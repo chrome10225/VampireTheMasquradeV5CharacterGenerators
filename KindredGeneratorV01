@@ -1,0 +1,169 @@
+// Kindred Stat Generator — Foundry Macro (Script)
+// Paste into a new Macro with the Script type and run.
+// Written By Grey
+
+(() => {
+  const kindredData = {
+    //If wanted you can change the range of dots the first number is min and the second is max(Inclusive)
+    "Neonate": {
+      generation: [12, 13],
+      bloodPotency: [1, 1],
+      physicalDicePools: [3, 6],
+      socialDicePools: [3, 6],
+      mentalDicePools: [3, 6],
+      disciplineRange: [2, 5]
+    },
+    "Ancilla": {
+      generation: [10, 11],
+      bloodPotency: [2, 2],
+      physicalDicePools: [5, 7],
+      socialDicePools: [5, 7],
+      mentalDicePools: [5, 7],
+      disciplineRange: [4, 9]
+    },
+    "Elder": {
+      generation: [8, 10],
+      bloodPotency: [3, 4],
+      physicalDicePools: [7, 9],
+      socialDicePools: [7, 9],
+      mentalDicePools: [7, 9],
+      disciplineRange: [7, 12]
+    },
+    "Primogen": { // labeled in UI as Primogen
+      generation: [8, 9],
+      bloodPotency: [4, 5],
+      physicalDicePools: [8, 10],
+      socialDicePools: [8, 10],
+      mentalDicePools: [8, 10],
+      disciplineRange: [10, 20]
+    }
+  };
+
+  // Clan → Disciplines (add more as you need)
+  const clanDisciplines = {
+    "Brujah": ["Celerity", "Potence", "Presence"],
+    "Toreador": ["Celerity", "Auspex", "Presence"],
+    "Ventrue": ["Dominate", "Fortitude", "Presence"],
+    "Nosferatu": ["Obfuscate", "Animalism", "Potence"],
+    "Malkavian": ["Obfuscate", "Auspex", "Dominate"],
+    "Gangrel": ["Animalism", "Protean", "Fortitude"],
+    "Tremere": ["Auspex", "Blood Sorcery", "Dominate"],
+    "Lasombra": ["Dominate", "Oblivion", "Potence"],
+    "Tzimisce": ["Animalism", "Dominate", "Protean"],
+    "Banu Haqim": ["Celerity", "Obfuscate", "Blood Sorcery"],
+    "Ravnos": ["Animalism", "Obfuscate", "Presence"],
+    "Salubri": ["Auspex", "Fortitude", "Dominate"],
+    "Ministry": ["Presence", "Obfuscate", "Protean"],
+    "Caitiff": ["Any", "Any", "Any"] // flexible case
+  };
+
+  // Global pool of all Disciplines
+  const allDisciplines = [
+    "Animalism","Auspex","Celerity","Dominate","Fortitude",
+    "Obfuscate","Potence","Presence","Protean"
+  ];
+
+  // Helpers
+  const randRange = (r) => {
+    const [min, max] = r;
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  };
+  const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
+
+  // Assign disciplines (caps at 5, Elders/Primogen may get extra disciplines)
+  const assignDisciplines = (clan, totalDots, status) => {
+    let chosen = [...clanDisciplines[clan]];
+
+    if (status === "Elder" || status === "Primogen") {
+      const extraCount = Math.floor(Math.random() * 2) + 1; // 1–2 extra
+      let available = allDisciplines.filter(d => !chosen.includes(d));
+      for (let i = 0; i < extraCount; i++) {
+        const pick = available.splice(Math.floor(Math.random() * available.length), 1)[0];
+        chosen.push(pick);
+      }
+    }
+
+    let pool = {};
+    for (let i = 0; i < totalDots; i++) {
+      const d = chosen[Math.floor(Math.random() * chosen.length)];
+      pool[d] = clamp((pool[d] || 0) + 1, 0, 5);
+    }
+
+    return Object.entries(pool).map(([k, v]) => `${k}: ${v}`).join(", ");
+  };
+
+  // Main chat creation
+  const createChat = async (status, clan) => {
+    const data = kindredData[status];
+    if (!data) {
+      ui.notifications.error("Invalid status selected.");
+      return;
+    }
+
+    const generation = randRange(data.generation);
+    const bloodPotency = randRange(data.bloodPotency);
+    const physicalDicePools = randRange(data.physicalDicePools);
+    const socialDicePools = randRange(data.socialDicePools);
+    const mentalDicePools = randRange(data.mentalDicePools);
+    const disciplineDots = randRange(data.disciplineRange);
+
+    const disciplines = assignDisciplines(clan, disciplineDots, status);
+
+    const content =
+      `<div class="vtm-kindred-gen">` +
+      `<h2>${(status === "Primogen") ? "Primogen / Anarch Council" : status} (${clan})</h2>` +
+      `<p><strong>Generation:</strong> ${generation}<br>` +
+      `<strong>Blood Potency:</strong> ${bloodPotency}</p>` +
+      `<strong>Physical Pool:</strong> ${physicalDicePools}<br>` +
+      `<strong>Social Pool:</strong> ${socialDicePools}<br>` +
+      `<strong>Mental Pool:</strong> ${mentalDicePools}<br>` +
+      `<strong>Disciplines:</strong> ${disciplines}</p>` +
+      `</div>`;
+
+    ChatMessage.create({
+      user: game.user.id,
+      speaker: ChatMessage.getSpeaker({ user: game.user.id }),
+      content: content
+    });
+  };
+
+  // Build options for the select
+  const optionsHtml = Object.keys(kindredData).map(key => {
+    const label = (key === "Primogen") ? "Primogen / Anarch Council" : key;
+    return `<option value="${key}">${label}</option>`;
+  }).join("");
+
+  const clanHtml = Object.keys(clanDisciplines).map(clan => {
+    return `<option value="${clan}">${clan}</option>`;
+  }).join("");
+
+  // Dialog UI
+  new Dialog({
+    title: "Kindred Stat Generator",
+    content: `
+      <form>
+        <div class="form-group">
+          <label for="kindred-status">Select Status</label>
+          <select id="kindred-status" name="status">${optionsHtml}</select>
+        </div>
+        <div class="form-group">
+          <label for="kindred-clan">Select Clan</label>
+          <select id="kindred-clan" name="clan">${clanHtml}</select>
+        </div>
+      </form>
+    `,
+    buttons: {
+      generate: {
+        label: "Generate",
+        callback: (html) => {
+          const status = html.find('[name="status"]').val();
+          const clan = html.find('[name="clan"]').val();
+          createChat(status, clan);
+        }
+      },
+      cancel: { label: "Cancel" }
+    },
+    default: "generate"
+  }).render(true);
+
+})();
