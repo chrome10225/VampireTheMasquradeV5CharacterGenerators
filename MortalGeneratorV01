@@ -37,7 +37,7 @@
     }
   };
 
-  // Example "specialties" — mortal talents instead of Disciplines
+  // Feel Free to add more specialties if you want.
   const mortalSpecialties = [
     "Melee Combat",
     "Firearms",
