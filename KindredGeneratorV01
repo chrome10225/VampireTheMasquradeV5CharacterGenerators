@@ -1,6 +1,6 @@
 // Kindred Stat Generator — Foundry Macro (Script)
 // Paste into a new Macro with the Script type and run.
-// Written By Grey
+// Written By Grey AKA Chrome10225
 
 (() => {
   const kindredData = {
