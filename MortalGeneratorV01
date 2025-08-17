@@ -3,6 +3,7 @@
 // Created by Grey AKA Chrome10225
 
 (() => {
+  //If wanted you can change the range of dots the first number is min and the second is max(Inclusive)
   const mortalData = {
     "Casual": {
       physicalDicePools: [2, 4],
