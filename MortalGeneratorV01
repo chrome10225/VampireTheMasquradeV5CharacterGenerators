@@ -1,0 +1,127 @@
+// Mortal Stat Generator — Foundry Macro (Script)
+// Paste into a new Macro with the Script type and run.
+// Created by Grey
+
+(() => {
+  const mortalData = {
+    "Casual": {
+      physicalDicePools: [2, 4],
+      socialDicePools: [2, 4],
+      mentalDicePools: [2, 4],
+      specialtyRange: [0, 1]
+    },
+    "Trained": {
+      physicalDicePools: [3, 5],
+      socialDicePools: [3, 5],
+      mentalDicePools: [3, 5],
+      specialtyRange: [1, 2]
+    },
+    "Professional": {
+      physicalDicePools: [4, 6],
+      socialDicePools: [4, 6],
+      mentalDicePools: [4, 6],
+      specialtyRange: [2, 4]
+    },
+    "Veteran": {
+      physicalDicePools: [5, 7],
+      socialDicePools: [5, 7],
+      mentalDicePools: [5, 7],
+      specialtyRange: [3, 6]
+    },
+    "Legendary": {
+      physicalDicePools: [6, 8],
+      socialDicePools: [6, 8],
+      mentalDicePools: [6, 8],
+      specialtyRange: [5, 8]
+    }
+  };
+
+  // Example "specialties" — mortal talents instead of Disciplines
+  const mortalSpecialties = [
+    "Melee Combat",
+    "Firearms",
+    "Stealth",
+    "Investigation",
+    "Occult Knowledge",
+    "First Aid",
+    "Athletics",
+    "Leadership",
+    "Intimidation",
+    "Streetwise"
+  ];
+
+  const randRange = (r) => {
+    const [min, max] = r;
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  };
+
+  // Assign specialties randomly
+  const assignSpecialties = (totalDots) => {
+    let pool = {};
+    for (let i = 0; i < totalDots; i++) {
+      const spec = mortalSpecialties[Math.floor(Math.random() * mortalSpecialties.length)];
+      pool[spec] = (pool[spec] || 0) + 1;
+    }
+    return Object.entries(pool).map(([k, v]) => `${k}: ${v}`).join(", ") || "None";
+  };
+
+  const createChat = async (danger) => {
+    const data = mortalData[danger];
+    if (!data) {
+      ui.notifications.error("Invalid danger rating selected.");
+      return;
+    }
+
+    const physicalDicePools = randRange(data.physicalDicePools);
+    const socialDicePools = randRange(data.socialDicePools);
+    const mentalDicePools = randRange(data.mentalDicePools);
+    const specialtyRange = randRange(data.specialtyRange);
+
+    const specialties = assignSpecialties(specialtyRange);
+
+    const content =
+      `<div class="vtm-mortal-gen">` +
+      `<h2>${danger} Mortal</h2>` +
+      `<strong>Physical Pool:</strong> ${physicalDicePools}<br>` +
+      `<strong>Social Pool:</strong> ${socialDicePools}<br>` +
+      `<strong>Mental Pool:</strong> ${mentalDicePools}<br>` +
+      `<strong>Specialties:</strong> ${specialties}</p>` +
+      `</div>`;
+
+    ChatMessage.create({
+      user: game.user.id,
+      speaker: ChatMessage.getSpeaker({ user: game.user.id }),
+      content: content
+    });
+  };
+
+  // Build options for danger levels
+  const dangerOptions = Object.keys(mortalData).map(level => {
+    return `<option value="${level}">${level}</option>`;
+  }).join("");
+
+  // Dialog UI
+  new Dialog({
+    title: "Mortal Stat Generator",
+    content: `
+      <form>
+        <div class="form-group">
+          <label for="mortal-danger">Select Danger Rating</label>
+          <select id="mortal-danger" name="danger">${dangerOptions}</select>
+        </div>
+      </form>
+    `,
+    buttons: {
+      generate: {
+        label: "Generate",
+        callback: (html) => {
+          const danger = html.find('[name="danger"]').val();
+          createChat(danger);
+        }
+      },
+      cancel: { label: "Cancel" }
+    },
+    default: "generate"
+  }).render(true);
+
+})();
