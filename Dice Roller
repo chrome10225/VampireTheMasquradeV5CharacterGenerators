@@ -1,0 +1,36 @@
+// VTM5e Dice Pool Roller (Actor Required)
+// Just make a character called Storyteller or whatever you want and set it as your character in foundry then you can roll whatever you want
+(async () => {
+  const content = `
+    <div style="margin:10px;">
+      <label>Regular Dice: </label>
+      <input id="regular-dice" type="number" value="5" min="0" style="width:60px;"/>
+    </div>
+    <div style="margin:10px;">
+      <label>Hunger Dice: </label>
+      <input id="hunger-dice" type="number" value="1" min="0" style="width:60px;"/>
+    </div>
+  `;
+
+  new Dialog({
+    title: "VTM5e Dice Pool Roller",
+    content,
+    buttons: {
+      roll: {
+        label: "Roll",
+        callback: (html) => {
+          const basicDice = parseInt(html.find("#regular-dice").val()) || 0;
+          const advancedDice = parseInt(html.find("#hunger-dice").val()) || 0;
+
+          // Roll using WOD5E API (no actor required)
+          WOD5E.api.Roll({
+            title: `Custom Dice Pool`,
+            basicDice,
+            advancedDice
+          });
+        }
+      },
+      cancel: { label: "Cancel" }
+    }
+  }).render(true);
+})();
